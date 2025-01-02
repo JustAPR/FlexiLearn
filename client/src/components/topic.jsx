@@ -10,8 +10,9 @@ const Topic = () => {
   const [topicDescription, setTopicDescription] = useState('');
   const [pdfPath, setPdfPath] = useState('');
   const [isTopicCompleted, setIsTopicCompleted] = useState(false);
-  const [summary, setSummary] = useState('');  // New state for PDF summary
-  const [isSummarizing, setIsSummarizing] = useState(false);  // State for loading status during summarization
+  const [summary, setSummary] = useState('');  
+  const [isSummarizing, setIsSummarizing] = useState(false);  
+  const [youtubeEmbedUrl, setyoutubeEmbedUrl] = useState('');  // New state for YouTube embed code
 
   // Function to check completion for the selected topic
   const checkTopicCompletion = async (topic) => {
@@ -61,7 +62,6 @@ const Topic = () => {
         const data = await response.json();
         setTopics(data.topics);
 
-        // Assuming you want to check completion for the selected topic
         if (data.topics.length > 0) {
           checkTopicCompletion(data.topics[0]);
         }
@@ -98,15 +98,45 @@ const Topic = () => {
         const data = await response.json();
         setTopicName(topic.topic_name);
         setTopicDescription(topic.topic_description);
-        setPdfPath(data.pdfPath); // Assuming the backend sends the PDF path in the response
+        setPdfPath(data.pdfPath);
 
         // Check completion for the selected topic
         checkTopicCompletion(topic);
+
+        // Fetch YouTube embed code for the selected topic
+        fetchYoutubeEmbedCode(topic.topic_name); // Call it when a topic is clicked
       } else {
         console.error('Error fetching PDF');
       }
     } catch (error) {
       console.error('Error handling click', error);
+    }
+  };
+
+  // Fetch YouTube embed code for the selected topic
+  const fetchYoutubeEmbedCode = async (topicName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/get-youtube?subject=${subject}&unit=${unit}&topic=${topicName}`, {
+        method: 'GET',
+        headers: {
+          Authorization: token,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.length > 0) {
+          // Extract the YouTube video ID from the URL and generate embed URL
+          const youtubeUrl = data[0].youtubeUrl;
+          const videoId = youtubeUrl.split('v=')[1]; // Extract video ID from URL
+          setyoutubeEmbedUrl(`https://www.youtube.com/embed/${videoId}`);  // Set the embed URL
+        }
+      } else {
+        console.error('Error fetching YouTube video');
+      }
+    } catch (error) {
+      console.error('Error fetching YouTube video', error);
     }
   };
 
@@ -126,7 +156,6 @@ const Topic = () => {
       });
 
       if (response.ok) {
-        // Assuming the backend responds with a success message
         console.log('Topic marked as completed successfully!');
         setIsTopicCompleted(true);
       } else {
@@ -144,7 +173,7 @@ const Topic = () => {
       return;
     }
 
-    setIsSummarizing(true);  // Set summarizing state to true
+    setIsSummarizing(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -155,22 +184,25 @@ const Topic = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pdfPath: pdfPath,  // Sending the PDF path to the backend
+          pdfPath: pdfPath,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSummary(data.summary); // Assuming the backend returns the summary
+        setSummary(data.summary);
       } else {
         console.error('Error summarizing PDF');
       }
     } catch (error) {
       console.error('Error summarizing PDF', error);
     } finally {
-      setIsSummarizing(false);  // Set summarizing state back to false
+      setIsSummarizing(false);
     }
   };
+
+  // Fetch the YouTube video embed code
+
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -209,20 +241,33 @@ const Topic = () => {
             </button>
           )}
 
-          {/* Summarize PDF Button */}
           <button
             onClick={summarizePdf}
-            disabled={isSummarizing || !pdfPath}  // Disable button if summarization is in progress or no PDF
+            disabled={isSummarizing || !pdfPath}
             className="bg-blue-500 text-xl text-white py-2 px-4 rounded-md mt-4"
           >
             {isSummarizing ? 'Summarizing...' : 'Summarize PDF'}
           </button>
 
-          {/* Displaying the PDF summary */}
           {summary && (
             <div className="mt-4 p-4 bg-gray-100 border rounded-md">
               <h3 className="text-xl font-semibold">PDF Summary:</h3>
               <p>{summary}</p>
+            </div>
+          )}
+
+          {/* Display YouTube Embed Code */}
+          {youtubeEmbedUrl && (
+            <div className="mt-4">
+              <h3 className="text-xl font-semibold">Related YouTube Video:</h3>
+              <iframe
+                width="100%"
+                height="400"
+                src={youtubeEmbedUrl}
+                title="YouTube Video"
+                frameBorder="0"
+                allowFullScreen
+              ></iframe>
             </div>
           )}
         </div>

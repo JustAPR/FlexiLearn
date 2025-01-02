@@ -92,9 +92,23 @@ const fileSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  yt:{
+    type: String,
+    required: false,
+  }
 });
 
 const File = mongoose.model("File", fileSchema);
+
+const youtubeSchema = new mongoose.Schema({
+  std: { type: String, required: true },
+  subject: { type: String, required: true },
+  unit: { type: String, required: true },
+  topic: { type: String, required: true },
+  youtubeUrl: { type: String, required: true },
+}, { timestamps: true });
+
+const Youtube = mongoose.model('Youtube', youtubeSchema);
 
 // Secret key for JWT
 const secretKey = process.env.secretKey; //'hackingmeisimpossible'; // Replace with a strong, secret key
@@ -129,7 +143,37 @@ const verifyToken = async (req, res, next) => {
     return res.status(403).json({ message: "Forbidden" });
   }
 };
+app.post('/api/upload-youtube', async (req, res) => {
+  const { std, subject, unit, topic, youtubeUrl } = req.body;
+  try {
+    const newVideo = new Youtube({
+      std,
+      subject,
+      unit,
+      topic,
+      youtubeUrl,
+    });
 
+    await newVideo.save();
+    res.status(201).json({ message: 'YouTube URL uploaded successfully!' });
+  } catch (error) {
+    console.error('Error uploading YouTube URL:', error);
+    res.status(500).json({ message: 'Error uploading YouTube URL' });
+  }
+});
+
+// Route to get YouTube URLs for a specific subject/unit/topic (optional, based on your need)
+app.get('/api/get-youtube', async (req, res) => {
+  const {subject, unit, topic } = req.query;
+
+  try {
+    const videos = await Youtube.find({subject, unit, topic });
+    res.status(200).json(videos);
+  } catch (error) {
+    console.error('Error fetching YouTube URLs:', error);
+    res.status(500).json({ message: 'Error fetching YouTube URLs' });
+  }
+});
 // API endpoint for user registration
 app.post("/api/register", async (req, res) => {
   try {

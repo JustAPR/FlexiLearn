@@ -27,6 +27,8 @@ const Content = () => {
   const [successUpload, setSuccessUpload] = useState('');
   const [accessStatus, setAccessStatus] = useState(null);
   const [addClicked, setAddClicked] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [sucyt, setsucyt] = useState('');
 
 
   useEffect(() => {
@@ -122,7 +124,45 @@ const Content = () => {
  
 
 
-
+  const handleYoutubeUpload = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+  
+      if (!youtubeUrl) {
+        alert("Please provide a valid YouTube URL");
+        return;
+      }
+  
+      const response = await fetch('http://localhost:5000/api/upload-youtube', {
+        method: 'POST',
+        headers: {
+          Authorization: token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          std,
+          subject: selectedSubject,
+          unit: selectedUnit,
+          topic: selectedTopic,
+          youtubeUrl,
+        }),
+      });
+  
+      if (response.ok) {
+        console.log('YouTube video URL uploaded successfully!');
+        setYoutubeUrl('');
+        setsucyt('Upladed!')
+      } else {
+        console.error('Error uploading YouTube URL');
+      }
+    } catch (error) {
+      console.error('Error uploading YouTube URL', error);
+    }
+  };
   const handleAddSubject = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -618,6 +658,23 @@ return (
           </button>
           {successUpload && <p className="text-green-500">{successUpload}</p>}
         </div>
+        <div className="mb-[10px] md:mb-4 lg:mb-4">
+  <h2 className="text-lg font-semibold mb-[10px] md:mb-2 lg:mb-2">Add YouTube Video URL:</h2>
+  <input
+    type="text"
+    value={youtubeUrl}
+    onChange={(e) => setYoutubeUrl(e.target.value)}
+    placeholder="YouTube URL"
+    className="mr-2 p-2 border border-gray-300 rounded mb-[10px] md:mb-2 lg:mb-2"
+  />
+  <button
+    onClick={handleYoutubeUpload}
+    className="p-2 bg-blue-500 text-white rounded mb-[10px] md:mb-2 lg:mb-2"
+  >
+    Upload YouTube URL
+  </button>
+  {sucyt && <p className="text-green-500">{sucyt}</p>}
+</div>
       </>
     )}
   </div>
