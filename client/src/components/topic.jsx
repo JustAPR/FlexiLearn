@@ -10,6 +10,8 @@ const Topic = () => {
   const [topicDescription, setTopicDescription] = useState('');
   const [pdfPath, setPdfPath] = useState('');
   const [isTopicCompleted, setIsTopicCompleted] = useState(false);
+  const [summary, setSummary] = useState('');  // New state for PDF summary
+  const [isSummarizing, setIsSummarizing] = useState(false);  // State for loading status during summarization
 
   // Function to check completion for the selected topic
   const checkTopicCompletion = async (topic) => {
@@ -135,6 +137,41 @@ const Topic = () => {
     }
   };
 
+  // New function to handle PDF summarization
+  const summarizePdf = async () => {
+    if (!pdfPath) {
+      console.error('No PDF path found');
+      return;
+    }
+
+    setIsSummarizing(true);  // Set summarizing state to true
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/summarize-pdf', {
+        method: 'POST',
+        headers: {
+          Authorization: token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdfPath: pdfPath,  // Sending the PDF path to the backend
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data.summary); // Assuming the backend returns the summary
+      } else {
+        console.error('Error summarizing PDF');
+      }
+    } catch (error) {
+      console.error('Error summarizing PDF', error);
+    } finally {
+      setIsSummarizing(false);  // Set summarizing state back to false
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row">
       <div className="mx-auto md:flex-1 mt-8 p-8 bg-white md:ml-4 md:mr-4">
@@ -159,20 +196,36 @@ const Topic = () => {
           )}
         </div>
         <div className="m-6 mt-10">
+          {isTopicCompleted ? (
+            <button className="bg-green-500 text-xl text-white py-2 px-4 rounded-md mt-4">
+              {topicName} Completed
+            </button>
+          ) : (
+            <button
+              onClick={markTopicCompleted}
+              className="bg-gray-300 text-gray-700 text-xl py-2 px-4 rounded-md hover:bg-gray-400 focus:bg-gray-400 focus:outline-none mt-4"
+            >
+              Mark {topicName} Completed
+            </button>
+          )}
 
-        {isTopicCompleted ? (
-          <button className="bg-green-500 text-xl text-white py-2 px-4 rounded-md mt-4">
-            {topicName} Completed
-          </button>
-        ) : (
+          {/* Summarize PDF Button */}
           <button
-            onClick={markTopicCompleted}
-            className="bg-gray-300 text-gray-700 text-xl py-2 px-4 rounded-md hover:bg-gray-400 focus:bg-gray-400 focus:outline-none mt-4"
+            onClick={summarizePdf}
+            disabled={isSummarizing || !pdfPath}  // Disable button if summarization is in progress or no PDF
+            className="bg-blue-500 text-xl text-white py-2 px-4 rounded-md mt-4"
           >
-            Mark {topicName} Completed
+            {isSummarizing ? 'Summarizing...' : 'Summarize PDF'}
           </button>
-        )}   
-        </div>     
+
+          {/* Displaying the PDF summary */}
+          {summary && (
+            <div className="mt-4 p-4 bg-gray-100 border rounded-md">
+              <h3 className="text-xl font-semibold">PDF Summary:</h3>
+              <p>{summary}</p>
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex-grow mt-5">
         {pdfPath && (
@@ -180,7 +233,6 @@ const Topic = () => {
             <iframe src={`http://localhost:5000/${pdfPath}`} width="100%" height="800px" title="PDF Viewer" className="border border-blue-500"></iframe>
           </div>
         )}
-
       </div>
     </div>
   );

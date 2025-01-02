@@ -7,6 +7,10 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
+const axios = require('axios');
+const { OpenAI } = require('openai');
 
 const app = express();
 const port = 5000;
@@ -736,9 +740,69 @@ app.post("/searchTopic", async (req, res) => {
   }
 });
 
+
 // Serve static files from the 'uploads' directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const openai = new OpenAI({
+  apiKey: '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',  // Replace with your OpenAI API key
+});
 
+// Middleware to check the user's token (you can modify this for authentication)
+const checkToken = (req, res, next) => {
+  const token = req.headers['authorization'];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized access - Token missing' });
+  }
+  // You can verify the token here, for now just proceed if token exists
+  next();
+};
+
+// Endpoint to handle PDF summarization
+app.post('/api/summarize-pdf', checkToken, async (req, res) => {
+  const { pdfPath } = req.body;  // Receive PDF path from the frontend
+
+  if (!pdfPath) {
+    return res.status(400).json({ error: 'PDF path is required' });
+  }
+
+  try {
+    // Fetch the PDF file from the path
+    const pdfFilePath = path.join(__dirname, pdfPath); // Adjust based on where PDFs are stored
+    const pdfBuffer = fs.readFileSync(pdfFilePath);
+    
+    // Parse the PDF content
+    const pdfData = await pdfParse(pdfBuffer);
+
+    // Extract text from the PDF
+    const pdfText = pdfData.text;
+
+    // Send the text to OpenAI for summarization
+    const summary = await getSummarizedText(pdfText);
+
+    // Return the summary
+    res.json({ summary });
+  } catch (error) {
+    console.error('Error processing PDF:', error);
+    res.status(500).json({ error: 'Error summarizing PDF' });
+  }
+});
+
+// Example function to send text to OpenAI for summarization
+const getSummarizedText = async (text) => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',  // Or any other GPT model
+      messages: [{ role: 'user', content: `Summarize this content and don't replay anhything extra other than summary:\n\n${text}` }],
+      max_tokens: 500,
+    });
+
+    // Return the summary from OpenAI response
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error connecting to OpenAI:', error);
+    throw new Error('Error summarizing with AI');
+  }
+};
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

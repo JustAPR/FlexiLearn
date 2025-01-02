@@ -5,11 +5,8 @@ const Content = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [expandedSubjects, setExpandedSubjects] = useState({}); // Object to track expanded subjects by id
   const [subjectNames, setSubjectNames] = useState([]);
-  const [unitNames, setUnitNames] = useState({});
-  const [topicNames, setTopicNames] = useState([]);
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -20,6 +17,7 @@ const Content = () => {
           navigate('/');
           return;
         }
+
         // Send a request to the backend to fetch subjects
         const subjectsResponse = await fetch('http://localhost:5000/api/get-subjects', {
           method: 'GET',
@@ -32,39 +30,8 @@ const Content = () => {
         if (subjectsResponse.ok) {
           const data = await subjectsResponse.json();
 
-          // Using map to transform the data into arrays
-          const subjectNames = data.subjects.map(subject => subject.name.map(sub => sub.subject_name)).flat();
-          const unitNamesObj = {};
-          const topicNamesObj = {};
-          
-          data.subjects.forEach(subject => {
-            const subjectName = subject.name.map(sub => sub.subject_name)[0];
-          
-            // Extracting unit names for the current subject
-            const unitName = subject.name.flatMap(sub => sub.units.map(u => u.unit_name));
-          
-            if (!unitNamesObj[subjectName]) {
-              unitNamesObj[subjectName] = unitName;
-            } else {
-              unitNamesObj[subjectName] = [...unitNamesObj[subjectName], ...unitName];
-            }
-          
-            // Extracting topic names for the current subject
-            const topics = subject.name.flatMap(sub => sub.units.flatMap(unit => unit.topics.map(topic => topic.topic_name)));
-          
-            if (!topicNamesObj[subjectName]) {
-              topicNamesObj[subjectName] = topics;
-            } else {
-              topicNamesObj[subjectName] = [...topicNamesObj[subjectName], ...topics];
-            }
-          });
-          
-          // Update state
-          setSubjectNames(subjectNames);
-          setUnitNames(unitNamesObj);
-          setTopicNames(topicNamesObj);
-          
-          
+          // Populate subjectNames directly with nested data
+          setSubjectNames(data.subjects);
         } else {
           console.error('Error fetching subjects');
         }
@@ -76,61 +43,67 @@ const Content = () => {
     fetchSubjects();
   }, [navigate]);
 
-  useEffect(() => {
-    // Log state values after they are updated
-    console.log('Subject Names:', subjectNames);
-    console.log('Unit Names:', unitNames);
-    console.log('Topic Names:', topicNames);
-  }, [subjectNames, unitNames, topicNames]);
-
-  const handleSubjectClick = (subject) => {
-    setIsExpanded(!isExpanded);
-    setSelectedSubject(subject);
+  const handleSubjectClick = (subjectId) => {
+    setExpandedSubjects(prevState => {
+      const updatedExpandedSubjects = { ...prevState };
+      if (updatedExpandedSubjects[subjectId]) {
+        delete updatedExpandedSubjects[subjectId]; // Collapse the subject if already expanded
+      } else {
+        updatedExpandedSubjects[subjectId] = true; // Expand the subject
+      }
+      return updatedExpandedSubjects;
+    });
   };
 
   return (
-    <>
     <div className="container mx-auto mt-8">
       <h1 className="text-3xl font-bold mb-4">Subjects</h1>
-      <div className="flex flex-col max-w-[400px] overflow-y-auto max-h-[700px] pr-4 gap-4"
-      >
+      <div className="flex flex-col max-w-[400px] overflow-y-auto max-h-[700px] pr-4 gap-4">
         {subjectNames.map((subject, index) => (
-          <div
-            key={index}
-            className={`bg-white  p-4 rounded-md cursor-pointer shadow-md ${
-              isExpanded && selectedSubject === subject ? 'flex-grow expanded shadow-lg' : 'flex-grow-0'
-            }`}
-            onClick={() => handleSubjectClick(subject)}
-          >
-            <h2 className="text-xl font-bold mb-2">{subject}</h2>
-            {isExpanded && selectedSubject === subject && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Unit Names:</h3>
-                <ul>
-                    {unitNames[subject]?.map((unit, unitIndex) => (
-                       <li key={unitIndex} className="mb-2">
-                            <div className="flex flex-col gap-3">
-                                   {/* Updated to use a dropdown link with blue border */}
-                                   <Link
-                                    to={`/dashboard/content/${subject}/${unit}`}
-                                     className={`border px-2 py-1 m-2 rounded text-blue-500 hover:bg-blue-100 hover:border-blue-700 transition ${isExpanded ? 'border-b-2 border-blue-500' : ''}`}
-                                    >
-                                   {unit}
-                                   </Link>
-                            </div>
-                       </li>
-                       ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          subject.name.map((subjectDetail, subIndex) => (
+            <div
+              key={`${subjectDetail.subject_name}-${subIndex}`} // Use unique key combining subjectDetail.subject_name and subIndex
+              className={`bg-white p-4 rounded-md cursor-pointer shadow-md ${
+                expandedSubjects[subjectDetail.subject_name] ? 'flex-grow expanded shadow-lg' : 'flex-grow-0'
+              }`}
+              onClick={() => handleSubjectClick(subjectDetail.subject_name)} // Toggle the subject by its _id
+            >
+              <h2 className="text-xl font-bold mb-2">{subjectDetail.subject_name}</h2>
+              {expandedSubjects[subjectDetail.subject_name] && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Units:</h3>
+                  <ul>
+                    {subjectDetail.units.map((unit, unitIndex) => (
+                      <li key={unitIndex} className="mb-2">
+                        <div className="flex flex-col gap-3">
+                          <Link
+                            to={`/dashboard/content/${subjectDetail.subject_name}/${unit.unit_name}`}
+                            className="border px-2 py-1 m-2 rounded text-blue-500 hover:bg-blue-100 hover:border-blue-700 transition"
+                          >
+                            {unit.unit_name}
+                          </Link>
+                          {expandedSubjects[subjectDetail.subject_name] && (
+                            <ul className="ml-6">
+                              {unit.topics.map((topic, topicIndex) => (
+                                <li key={topicIndex} className="mb-1">
+                                  <div className="text-blue-600">
+                                    {topic.topic_name}: {topic.topic_description}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ))
         ))}
       </div>
     </div>
-  </>  
-  
-  
-
   );
 };
 
