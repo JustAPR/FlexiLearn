@@ -1,13 +1,10 @@
-
-
-# RUREDU
+# FlexiLearn
 
 An open-source Notes Sharing Platform for Educational Institutions
 
-# DESCRIPTION 
-Ruredu is a web-based platform designed for educational institutions to streamline the sharing of PDF notes. It provides a structured organization of PDF notes based on subjects, units, and topics. Additionally, Ruredu offers task tracking features to monitor completed and incomplete tasks for better academic management.
+# DESCRIPTION
 
-
+Flexilearn is a web-based platform designed for educational institutions to streamline the sharing of PDF notes. It provides a structured organization of PDF notes based on subjects, units, and topics. Additionally, FlexiLearn offers task tracking features to monitor completed and incomplete tasks for better academic management.
 
 ## Built with
 
@@ -18,19 +15,18 @@ Ruredu is a web-based platform designed for educational institutions to streamli
 - File Upload: Multer
 - File Rendering: iframe
 
-
 ## Run Locally
 
 Clone the project
 
 ```bash
-  git clone https://github.com/your-username/Ruredu.git
+  git clone https://github.com/your-username/FlexiLearn.git
 ```
 
 Go to the project directory
 
 ```bash
-  cd Ruredu
+  cd FlexiLearn
 ```
 
 Install dependencies for frontend
@@ -40,6 +36,7 @@ Install dependencies for frontend
   npm install
 
 ```
+
 Install dependencies for backend
 
 ```bash
@@ -47,7 +44,9 @@ Install dependencies for backend
   npm install
 
 ```
-Connect MongoDB 
+
+Connect MongoDB
+
 ```bash
   mongoose.connect('YOUR_MONGODB_CONNECTION_URL')
 ```
@@ -65,12 +64,14 @@ Start the backend server
   cd server
   nodemon index.js
 ```
+
 ## Features 🚀
 
 - **Student Side:** Manage notes more efficiently based on subject unit categorisation 🎉
 - **Admin Side:** Because only admins can handle the sacred task of adding notes. 👑
 - **Admin Powers:** Grant access to others to become admins. Beware of the power you wield! ⚡
 - **Task Monitoring:** Keep an eye on those pending tasks, mark them completed, feel accomplished. 📝✅
+
 ## Structure 🏗️
 
 - Subjects ➡️ Units ➡️ Topics ➡️ Notes
@@ -107,7 +108,5 @@ Contributions are welcome! This might be one of the quirkiest projects you've ev
 ## License 📜
 
 This project is licensed under the [MIT LICENSE]. Remember, sharing code is cool, just like sharing notes! 🚀✨
-
-
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
